@@ -1,0 +1,6 @@
+# Eclipse CDT
+.project
+.cproject
+.settings/***
+Debug/**
+Release/**
