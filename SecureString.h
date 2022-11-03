@@ -1,8 +1,15 @@
 /*
- * SecureString.h
+ * SecureString is a C++ implementation for the .NET SecureString
+ * (https://referencesource.microsoft.com/#mscorlib/system/security/securestring.cs)
  *
- *  Created on: Oct 25, 2022
- *      Author: dovle
+ * (C) Copyright Dov Levenglick 2022
+ *
+ * Use, modification and distribution are subject to the
+ * Unlicense Software License (See accompanying file LICENSE or copy at
+ * https://github.com/levengeek/SecureString/blob/main/LICENSE)
+ *
+ *  Created on: 2022-10-25
+ *      Author: Dov Levenglick
  */
 
 #ifndef SECURESTRING_H_

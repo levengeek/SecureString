@@ -1,8 +1,15 @@
 /*
- * SafeStringBuffer.h
+ * Non-copyable and non-assignable wrapper for std::basic_string<>
+ * with safe release
  *
- *  Created on: Oct 25, 2022
- *      Author: dovle
+ * (C) Copyright Dov Levenglick 2022
+ *
+ * Use, modification and distribution are subject to the
+ * Unlicense Software License (See accompanying file LICENSE or copy at
+ * https://github.com/levengeek/SecureString/blob/main/LICENSE)
+ *
+ *  Created on: 2022-10-25
+ *      Author: Dov Levenglick
  */
 
 #ifndef SAFESTRINGBUFFER_H_

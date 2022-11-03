@@ -1,9 +1,15 @@
 /*
-* SecureString.cpp
-*
-*  Created on: Oct 25, 2022
-*      Author: dovle
-*/
+ * SecureString full explicit instantiation
+ *
+ * (C) Copyright Dov Levenglick 2022
+ *
+ * Use, modification and distribution are subject to the
+ * Unlicense Software License (See accompanying file LICENSE or copy at
+ * https://github.com/levengeek/SecureString/blob/main/LICENSE)
+ *
+ *  Created on: 2022-10-25
+ *      Author: Dov Levenglick
+ */
 
 #include "SecureString.h"
 
