@@ -1,5 +1,6 @@
 # SecureString
-C++ implementation of the .NET SecureString
+C++ implementation of the .NET SecureString.
+
 See https://learn.microsoft.com/en-us/dotnet/api/system.security.securestring
 
 # Example
