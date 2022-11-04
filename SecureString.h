@@ -23,13 +23,13 @@
 #include <type_traits>
 #include <memory>
 #include <cstdint>
-#include <stdexcept>
 #include <functional>
 #include <cwchar>
 
 /* project header files */
 #include "Encryptor.h"
 #include "SafeStringBuffer.h"
+#include "SecureStringExceptions.h"
 
 /**
  * SecureString is a C++ implementation for the .NET SecureString
@@ -58,6 +58,8 @@ public:
 	 * 							will be used for the duration of the string for
 	 * 							encryption and decryption
 	 *
+	 * @throw		SecureStringEncryptorException
+	 *
 	 */
 	SecureString(Encryptor &encryptor) :
 		m_num_Char(0), m_num_Char_allocated(0), m_data(nullptr),
@@ -67,7 +69,7 @@ public:
 		static_assert(std::is_same<Char, char>::value ||
 					 std::is_same<Char, wchar_t>::value);
 		if (!m_encryptor.get().encryption_supported())
-			throw std::invalid_argument("encryptor");
+			throw SecureStringEncryptorException();
 	}
 
 	/**
@@ -76,15 +78,19 @@ public:
 	 * @param[in]	encryptor	object deriving from the Encryptor class that
 	 * 							will be used for the duration of the string for
 	 * 							encryption and decryption
-	 *
 	 * @param[in]	str			NULL terminated C-style string to use for
 	 * 							initializing the SecureString
+	 *
+	 * @throw		SecureStringEncryptorException
+	 * @throw		SecureStringInitializationException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
 	 */
 	SecureString(Encryptor &encryptor, const Char *str) :
 		SecureString(encryptor)
 	{
 		if (!str)
-			throw std::invalid_argument("no memory");
+			throw SecureStringInitializationException();
 
 		if constexpr (std::is_same<Char, char>::value)
 			m_num_Char = strlen(str)/* + 1*/;
@@ -94,11 +100,11 @@ public:
 		int err;
 		err = ensure_capacity(m_num_Char);
 		if (err)
-			throw std::runtime_error("capacity");
+			throw SecureStringCapacityException(m_num_Char);
 		std::copy(str, str+m_num_Char, m_data);
 		err = protect_memory();
 		if (err)
-			throw std::runtime_error("encryption");
+			throw SecureStringEncryptionException(err);
 	}
 
 	/**
@@ -107,9 +113,13 @@ public:
 	 * @param[in]	encryptor	object deriving from the Encryptor class that
 	 * 							will be used for the duration of the string for
 	 * 							encryption and decryption
-	 *
 	 * @param[in]	str			C++ std::string or stt::wstring to use for
 	 * 							initializing the SecureString
+	 *
+	 * @throw		SecureStringEncryptorException
+	 * @throw		SecureStringInitializationException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
 	 */
 	SecureString(Encryptor &encryptor, const std::basic_string<Char> &str) :
 		SecureString(encryptor, str.c_str())
@@ -119,6 +129,8 @@ public:
 
 	/**
 	 * copy constructor
+	 *
+	 * @throw		SecureStringCapacityException
 	 */
 	SecureString(SecureString &other) :
 		m_data(nullptr), m_encryptor(other.m_encryptor)
@@ -126,12 +138,12 @@ public:
 		std::lock_guard<std::mutex> guard(other.m_lock);
 		m_num_Char = other.m_num_Char;
 		m_num_Char_allocated = other.m_num_Char_allocated;
-		m_ro = other.m_ro.load();
+		m_ro = other.m_ro;
 		m_encrypted = other.m_encrypted;
 
 		m_data = new Char[m_num_Char_allocated];
 		if (!m_data)
-			throw std::runtime_error("no memory");
+			throw SecureStringCapacityException(m_num_Char);
 		std::copy(other.m_data, other.m_data+m_num_Char_allocated, m_data);
 	}
 
