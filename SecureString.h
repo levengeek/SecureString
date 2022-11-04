@@ -216,15 +216,21 @@ public:
 	 *
 	 * @param[in]	ch	charachter to append
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
 	int append(const Char& ch)
 	{
 		std::lock_guard<std::mutex> guard(m_lock);
 		int err;
 
-		if (m_ro)
-			return EPERM;
+		err = validate_writable();
+		if (err)
+			return err;
 
 		err = unprotect_memory();
 		if (err)
@@ -247,19 +253,31 @@ public:
 	 * 							than the length of the SecureString
 	 * @param[in]	ch			character to insert
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
+	 * @throw		SecureStringOffsetException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
-	int insert_at(const size_t offset, const Char ch) noexcept
+	int insert_at(const size_t offset, const Char ch)
 	{
 		std::lock_guard<std::mutex> guard(m_lock);
+		int err;
 
-		if (m_ro)
-			return EPERM;
+		err = validate_writable();
+		if (err)
+			return err;
 
-		if (offset >= m_num_Char)
-			return E2BIG;
+		if (offset >= m_num_Char) {
+			if constexpr(ThrowsExceptions)
+				throw SecureStringOffsetException(offset, m_num_Char);
+			else
+				return E2BIG;
+		}
 
-		int err = unprotect_memory();
+		err = unprotect_memory();
 		if (err)
 			return err;
 
@@ -279,19 +297,31 @@ public:
 	 * 							than the length of the SecureString
 	 * @param[in]	ch			character to use for overwrite
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
+	 * @throw		SecureStringOffsetException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
-	int set_at(const size_t offset, const Char ch) noexcept
+	int set_at(const size_t offset, const Char ch)
 	{
 		std::lock_guard<std::mutex> guard(m_lock);
+		int err;
 
-		if (m_ro)
-			return EPERM;
+		err = validate_writable();
+		if (err)
+			return err;
 
-		if (offset >= m_num_Char)
-			return E2BIG;
+		if (offset >= m_num_Char) {
+			if constexpr(ThrowsExceptions)
+				throw SecureStringOffsetException(offset, m_num_Char);
+			else
+				return E2BIG;
+		}
 
-		int err = unprotect_memory();
+		err = unprotect_memory();
 		if (err)
 			return err;
 
@@ -307,19 +337,31 @@ public:
 	 * @param[in]	offset		offset into SecureString - may not be larger
 	 * 							than the length of the SecureString
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
+	 * @throw		SecureStringOffsetException
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
-	int remove_at(const size_t offset) noexcept
+	int remove_at(const size_t offset)
 	{
 		std::lock_guard<std::mutex> guard(m_lock);
+		int err;
 
-		if (m_ro)
-			return EPERM;
+		err = validate_writable();
+		if (err)
+			return err;
 
-		if (offset >= m_num_Char)
-			return E2BIG;
+		if (offset >= m_num_Char) {
+			if constexpr(ThrowsExceptions)
+				throw SecureStringOffsetException(offset, m_num_Char);
+			else
+				return E2BIG;
+		}
 
-		int err = unprotect_memory();
+		err = unprotect_memory();
 		if (err)
 			return err;
 
@@ -333,7 +375,9 @@ public:
 	/**
 	 * clear SecureString contents
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
 	 */
 	int clear() noexcept
 	{
@@ -351,8 +395,12 @@ public:
 	 * 				be an indication of an error
 	 * @warning		caller should protect returned string from leaking unwanted
 	 * 				clear-text information into the system
+	 *
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
-	std::basic_string<Char> to_string() noexcept
+	std::basic_string<Char> to_string()
 	{
 		std::lock_guard<std::mutex> guard(m_lock);
 
@@ -363,7 +411,10 @@ public:
 		Char *chr = new Char[m_num_Char + sizeof('\0')];
 		if (!chr) {
 			protect_memory();
-			return std::basic_string<Char>();
+			if constexpr(ThrowsExceptions)
+				throw SecureStringCapacityException(m_num_Char + sizeof('\0'));
+			else
+				return std::basic_string<Char>();
 		}
 
 		std::copy(m_data, m_data+m_num_Char, chr);
@@ -384,8 +435,12 @@ public:
 	 *
 	 * @warning		caller should check if the return value is empty. this may
 	 * 				be an indication of an error
+	 *
+	 * @throw		SecureStringCapacityException
+	 * @throw		SecureStringEncryptionException
+	 * @throw		SecureStringDecryptionException
 	 */
-	std::unique_ptr<SafeStringBuffer<Char>> to_safe_string() noexcept
+	std::unique_ptr<SafeStringBuffer<Char>> to_safe_string()
 	{
 		// no need to guard this method, since all access to the object
 		// will be done in tos_string()
@@ -398,35 +453,61 @@ public:
 private:
 
 	/**
+	 * check that SecureString is not set to be read-only
+	 *
+	 * @return		0 if writable, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringReadOnlyException
+	 */
+	int validate_writable() const
+	{
+		if (!m_ro)
+			return 0;
+
+		if constexpr (ThrowsExceptions)
+			throw SecureStringReadOnlyException();
+		else
+			return EPERM;
+	}
+
+	/**
 	 * use the Encryptor to encrypt the underlying array of characters
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringEncryptionException
 	 */
 	int protect_memory()
 	{
 		if (m_encrypted || !m_data)
 			return 0;
 
-		int ret = m_encryptor.get().encrypt(static_cast<void *>(m_data), Char_to_bytes(m_num_Char_allocated), Encryptor::ACCESSIBLE_SAME_PROCESS);
-		if (ret == 0)
+		int err = m_encryptor.get().encrypt(static_cast<void *>(m_data), Char_to_bytes(m_num_Char_allocated), Encryptor::ACCESSIBLE_SAME_PROCESS);
+		if (!err) {
 			m_encrypted = true;
-		return ret;
+		} else if constexpr (ThrowsExceptions)
+				throw SecureStringEncryptionException(err);
+		return err;
 	}
 
 	/**
 	 * use the Encryptor to decrypt the underlying array of characters
 	 *
-	 * @return			0 if successful, otherwise error from <cerrno>
+	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringDecryptionException
 	 */
 	int unprotect_memory()
 	{
 		if (!m_encrypted || !m_data)
 			return 0;
 
-		int ret = m_encryptor.get().decrypt(static_cast<void *>(m_data), Char_to_bytes(m_num_Char_allocated), Encryptor::ACCESSIBLE_SAME_PROCESS);
-		if (ret == 0)
+		int err = m_encryptor.get().decrypt(static_cast<void *>(m_data), Char_to_bytes(m_num_Char_allocated), Encryptor::ACCESSIBLE_SAME_PROCESS);
+		if (!err) {
 			m_encrypted = false;
-		return ret;
+		} else if constexpr (ThrowsExceptions)
+				throw SecureStringDecryptionException(err);
+		return err;
 	}
 
 	/**
@@ -453,6 +534,8 @@ private:
 	 * @param[in]	num_Char	number of characters
 	 *
 	 * @return		0 if successful, otherwise error from <cerrno>
+	 *
+	 * @throw		SecureStringCapacityException
 	 */
 	int ensure_capacity(const size_t num_Char)
 	{
@@ -462,8 +545,13 @@ private:
 			return 0;
 
 		Char *data = new Char[bytes_to_Chars(required)];
-		if (!data)
-			return ENOMEM;
+		if (!data) {
+			if constexpr (ThrowsExceptions)
+				throw SecureStringCapacityException(bytes_to_Chars(required));
+			else
+				return ENOMEM;
+		}
+
 		if (m_data)
 			std::copy(m_data, m_data+m_num_Char, data);
 
@@ -502,11 +590,14 @@ private:
 	 *
 	 * @warning		should only be called after the SecureString's lock
 	 * 				is acquired
+	 *
+	 * @throw		SecureStringReadOnlyException
 	 */
 	int protected_clear() noexcept
 	{
-		if (m_ro)
-			return EPERM;
+		int err = validate_writable();
+		if (err)
+			return err;
 
 		discard_data();
 		m_num_Char = 0;
