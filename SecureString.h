@@ -40,10 +40,20 @@
  * this template essentially only allows instantiating wrappers for
  * std::string and std::wstring
  *
+ * @param[in]	Char				the type of character (char, wchar_t) that
+ * 									is used in the SecureString
+ * @param[in]	ThrowsExceptions	true  - the SecureString throws exceptions
+ * 									false - the SecureString returns error codes
+ *
  * @notice		the class makes a distinction between "characters" and bytes -
  * 				the former being the number of Char elements in the SecureString
+ *
+ * @warning		the ThrowsExceptions parameter does not effect the behavior of
+ * 				error handling in the constructors - those will ALWAYS throw
+ * 				exceptions to indicate failure
  */
 template <typename Char,
+		  bool ThrowsExceptions = false,
 		  typename std::enable_if<std::is_same<Char, char   >::value ||
 		  	  	  	  	  	  	  std::is_same<Char, wchar_t>::value
 											>::type* = nullptr
