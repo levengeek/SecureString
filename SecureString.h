@@ -17,7 +17,6 @@
 
 /* C++ header files */
 #include <string>
-#include <atomic>
 #include <mutex>
 #include <cstring>
 #include <type_traits>
@@ -208,6 +207,7 @@ public:
 	 */
 	inline bool is_ro() const noexcept
 	{
+		std::lock_guard<std::mutex> guard(m_lock);
 		return m_ro;
 	}
 
@@ -632,7 +632,7 @@ private:
 	/** array of characters */
 	Char 		*m_data;
 	/** is SecureString read only */
-	std::atomic<bool> m_ro;
+	bool		 m_ro;
 	/** is m_data encrypted or clear-text */
 	bool		 m_encrypted;
 	/** reference to Encryptor */
